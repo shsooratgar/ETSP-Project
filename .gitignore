@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Raw corpora are large and re-downloadable; cached predictions are not committed
+# by default either. Release them with the report instead.
+data/*
+!data/.gitkeep
+results/*
+!results/.gitkeep

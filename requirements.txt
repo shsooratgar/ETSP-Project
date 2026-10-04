@@ -1,0 +1,19 @@
+# Pins that matter are commented. Everything else floats.
+
+# SummaC's XSumFaith loader calls load_dataset(..., trust_remote_code=True),
+# which datasets>=3.0 removed. Do not relax this pin without re-testing XSumFaith.
+datasets<3.0
+summac>=0.0.4
+
+torch
+transformers>=4.40
+accelerate
+bitsandbytes ; sys_platform == "linux"   # only needed for --load-in-8bit
+
+numpy
+pandas
+scikit-learn
+matplotlib
+
+pytest
+ruff

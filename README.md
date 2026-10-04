@@ -91,4 +91,4 @@ script reports the match rate, and RQ2 depends on it.
 
 ## Team
 
-Shayan Sooratgar, Mustafa [Surname]
+Shayan Sooratgar, Batuhan Iliev

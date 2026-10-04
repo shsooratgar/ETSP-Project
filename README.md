@@ -63,7 +63,7 @@ test new routing policies without re-running a model.
 | `src/frugal_faith/models.py` | Qwen inference and cost measurement (lazy torch import) |
 | `src/frugal_faith/features.py` | Cheap router features |
 | `src/frugal_faith/router.py` | Routing policies and their baselines |
-| `src/frugal_faith/evaluate.py` | Balanced accuracy, cost–accuracy curves |
+| `src/frugal_faith/evaluate.py` | Balanced accuracy, bootstrap CIs, paired tests, cost–accuracy curves |
 | `scripts/` | The three entry points: download, infer, analyse |
 
 `scoring`, `features`, `router` and `evaluate` have no torch dependency, so the whole test
@@ -84,7 +84,8 @@ six datasets are enough for the project; drop anything that stays broken.
 
 ## Status
 
-Scaffold. Implemented and tested: scoring, features, routing policies, metrics, curves.
+Scaffold. Implemented and tested: scoring, features, routing policies, metrics,
+bootstrap confidence intervals and paired significance tests, cost-accuracy curves.
 Stubbed: `scripts/analyze.py` needs the prediction-alignment step once the first real
 predictions exist. `data.attach_error_types` has an unverified join key — the download
 script reports the match rate, and RQ2 depends on it.

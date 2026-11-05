@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 
 from .router import RoutingPolicy, escalation_mask
+
+Metric = Callable[[np.ndarray, np.ndarray], float]
 
 
 def balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -123,12 +127,15 @@ def cost_accuracy_curve(
     budgets: tuple[float, ...],
     cost_small: float,
     cost_large: float,
+    metric: Metric | None = None,
 ) -> pd.DataFrame:
-    """Balanced accuracy and compute cost at each escalation budget.
+    """Accuracy and compute cost at each escalation budget.
 
     Cost is per example and includes the small model everywhere, because the
-    cascade always pays for the first stage.
+    cascade always pays for the first stage. ``metric`` defaults to balanced
+    accuracy; the column keeps that name whatever metric is passed.
     """
+    metric = metric or balanced_accuracy
     scores = policy.scores(features)
     rows = []
     for budget in budgets:
@@ -139,7 +146,7 @@ def cost_accuracy_curve(
                 "policy": policy.name,
                 "budget": budget,
                 "escalated": float(np.mean(escalate)),
-                "balanced_accuracy": balanced_accuracy(y_true, combined),
+                "balanced_accuracy": metric(y_true, combined),
                 "cost_per_example": cost_small + float(np.mean(escalate)) * cost_large,
             }
         )
@@ -152,18 +159,20 @@ def reference_points(
     y_true: np.ndarray,
     cost_small: float,
     cost_large: float,
+    metric: Metric | None = None,
 ) -> pd.DataFrame:
     """The two bounds: always-small (cheapest) and always-large (most accurate)."""
+    metric = metric or balanced_accuracy
     return pd.DataFrame(
         [
             {
                 "policy": "always_small",
-                "balanced_accuracy": balanced_accuracy(y_true, small_pred),
+                "balanced_accuracy": metric(y_true, small_pred),
                 "cost_per_example": cost_small,
             },
             {
                 "policy": "always_large",
-                "balanced_accuracy": balanced_accuracy(y_true, large_pred),
+                "balanced_accuracy": metric(y_true, large_pred),
                 "cost_per_example": cost_large,
             },
         ]

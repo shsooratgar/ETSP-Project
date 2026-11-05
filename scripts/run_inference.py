@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import random
 import sys
 
 import pandas as pd
@@ -29,6 +30,9 @@ def main() -> int:
     parser.add_argument("--cut", default="val", choices=["val", "test"])
     parser.add_argument("--prompt", default="direct")
     parser.add_argument("--limit", type=int, default=None, help="first N examples, for a pilot")
+    parser.add_argument(
+        "--sample", type=int, default=None, help="fixed random N examples across datasets"
+    )
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--tag", default="", help="suffix for the cache file, e.g. 'pilot'")
@@ -38,6 +42,9 @@ def main() -> int:
     examples, failures = load_summac(args.cut, config.data_dir, config.datasets)
     if failures:
         print(f"Warning: skipped {sorted(failures)}", file=sys.stderr)
+    if args.sample:
+        rng = random.Random(config.seed)
+        examples = rng.sample(examples, min(args.sample, len(examples)))
     if args.limit:
         examples = examples[: args.limit]
     if not examples:

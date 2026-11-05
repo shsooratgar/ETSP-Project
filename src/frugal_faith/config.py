@@ -15,15 +15,20 @@ MODEL_LADDER: tuple[str, ...] = (
     "Qwen/Qwen2.5-7B-Instruct",
 )
 
-#: The six SummaC datasets. Drop any that will not download (see README).
-SUMMAC_DATASETS: tuple[str, ...] = (
-    "cogensumm",
+#: All six SummaC datasets, under the names summac's loader expects.
+ALL_SUMMAC_DATASETS: tuple[str, ...] = (
+    "cogensum",
     "xsumfaith",
     "polytope",
     "factcc",
     "summeval",
     "frank",
 )
+
+#: The three whose sources are still downloadable (checked November 2026). FactCC's
+#: bucket returns 403, SummEval's Google Drive file 404, and CoGenSumm's host now
+#: sits behind a bot check, so those need a manual download (see README).
+SUMMAC_DATASETS: tuple[str, ...] = ("xsumfaith", "polytope", "frank")
 
 
 @dataclass(frozen=True)
@@ -37,7 +42,7 @@ class Config:
     prompt_id: str = "direct"
     #: Source documents are long; truncate to keep 7B inference affordable.
     max_document_tokens: int = 1024
-    batch_size: int = 8
+    batch_size: int = 4
     seed: int = 20260101
     #: Budgets (fraction of examples escalated to the large model) for the curve.
     budgets: tuple[float, ...] = field(

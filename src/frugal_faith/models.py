@@ -144,7 +144,10 @@ class FaithfulnessScorer:
             ).to(self.device)
             start_time = time.perf_counter()
             with torch.no_grad():
-                logits = self._model(**inputs).logits[:, -1, :].float().cpu().numpy()
+                # Only the next-token distribution is needed: skipping the other
+                # positions' logits saves gigabytes on long, batched inputs.
+                output = self._model(**inputs, use_cache=False, logits_to_keep=1)
+                logits = output.logits[:, -1, :].float().cpu().numpy()
             seconds = time.perf_counter() - start_time  # .cpu() forces a device sync
             real_tokens = inputs["attention_mask"].sum(dim=1).tolist()
             yield [

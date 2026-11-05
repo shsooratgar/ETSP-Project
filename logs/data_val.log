@@ -1,24 +1,0 @@
-==== CoGenSumm dataset not found, downloading from scratch
-==== XSum dataset not found, downloading from scratch
-Downloading data:   0%|          | 0.00/300M [00:00<?, ?B/s]Downloading data:   0%|          | 297k/300M [00:01<24:21, 205kB/s]Downloading data: 100%|██████████| 300M/300M [00:16<00:00, 18.6MB/s, 28.8kB/s  ]Downloading data: 100%|██████████| 300M/300M [00:16<00:00, 18.1MB/s, 22.9MB/s  ]
-Downloading data:   0%|          | 0.00/16.4M [00:00<?, ?B/s]Downloading data: 100%|██████████| 16.4M/16.4M [00:01<00:00, 9.95MB/s]Downloading data: 100%|██████████| 16.4M/16.4M [00:01<00:00, 9.71MB/s, 1.57MB/s  ]
-Downloading data:   0%|          | 0.00/16.7M [00:00<?, ?B/s]Downloading data:   6%|▌         | 963k/16.7M [00:01<00:25, 619kB/s]Downloading data:  11%|█         | 1.77M/16.7M [00:01<00:13, 1.14MB/s, 92.3kB/s  ]Downloading data:  28%|██▊       | 4.72M/16.7M [00:01<00:03, 3.57MB/s,  167kB/s  ]Downloading data: 100%|██████████| 16.7M/16.7M [00:02<00:00, 13.5MB/s,  444kB/s  ]Downloading data: 100%|██████████| 16.7M/16.7M [00:02<00:00, 7.11MB/s, 1.56MB/s  ]
-Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 56000 examples [00:00, 550402.64 examples/s]Generating train split: 123000 examples [00:00, 617223.25 examples/s]Generating train split: 194000 examples [00:00, 650237.34 examples/s]Generating train split: 204045 examples [00:00, 629295.02 examples/s]
-Generating validation split: 0 examples [00:00, ? examples/s]Generating validation split: 11332 examples [00:00, 591940.38 examples/s]
-Generating test split: 0 examples [00:00, ? examples/s]Generating test split: 11334 examples [00:00, 599549.02 examples/s]
-==== Polytope dataset not found, downloading from scratch
-==== FactCC dataset not found, downloading from scratch
-==== SummEval dataset not found, downloading from scratch
-==== Frank dataset not found, downloading from scratch
-Loaded 1921 examples from the 'val' cut.
-  frank           671  (33% consistent)
-  xsumfaith      1250  (10% consistent)
-
-Failures (drop these datasets if they stay broken):
-  cogensum: BadZipFile: File is not a zip file
-  polytope: ImportError: `Import openpyxl` failed.  Use pip, conda, or your preferred package management tool to install the openpyxl package.
-  factcc: ReadError: not a gzip file
-  summeval: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-
-FRANK error types among inconsistent summaries: {'CircE': 46, 'CorefE': 25, 'OutE': 134, 'EntE': 120, 'RelE': 47, 'GramE': 49, 'LinkE': 23, 'OtherE': 4}
-VAL EXIT 0

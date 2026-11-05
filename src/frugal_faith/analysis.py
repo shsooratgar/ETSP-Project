@@ -182,3 +182,52 @@ def macro_bootstrap(
     if pred_b is not None:
         result["p_value"] = float(np.mean(samples_arr <= 0.0))
     return result
+
+
+def cross_fitted_thresholds(
+    prob_consistent: np.ndarray, y_true: np.ndarray, n_folds: int = 5, seed: int = 0
+) -> np.ndarray:
+    """One threshold per example, each tuned on the *other* folds.
+
+    The router is trained on the validation cut. If the checker's thresholds
+    were tuned on that same cut, the router would learn from labels that are
+    optimistically accurate in-sample and look nothing like test-time
+    behaviour. Cross-fitting gives every validation example a label from a
+    threshold that never saw it.
+    """
+    probs = np.asarray(prob_consistent, dtype=np.float64)
+    y_true = np.asarray(y_true)
+    folds = np.random.default_rng(seed).permutation(len(probs)) % n_folds
+    thresholds = np.empty(len(probs))
+    for k in range(n_folds):
+        held_out = folds == k
+        thresholds[held_out] = tune_threshold(probs[~held_out], y_true[~held_out])
+    return thresholds
+
+
+def paired_auc_bootstrap(
+    y_true: np.ndarray,
+    scores_a: np.ndarray,
+    scores_b: np.ndarray,
+    n_resamples: int = 1000,
+    seed: int = 0,
+) -> dict[str, float]:
+    """AUC of A minus AUC of B on the same examples, with a 95% interval.
+
+    Used to compare prompt wordings scored on one shared subsample.
+    """
+    y_true = np.asarray(y_true)
+    scores_a, scores_b = np.asarray(scores_a), np.asarray(scores_b)
+    rng = np.random.default_rng(seed)
+    diffs = []
+    for _ in range(n_resamples):
+        idx = rng.integers(0, len(y_true), len(y_true))
+        if len(np.unique(y_true[idx])) < 2:
+            continue
+        diffs.append(roc_auc(y_true[idx], scores_a[idx]) - roc_auc(y_true[idx], scores_b[idx]))
+    diffs_arr = np.asarray(diffs)
+    return {
+        "difference": roc_auc(y_true, scores_a) - roc_auc(y_true, scores_b),
+        "ci_low": float(np.percentile(diffs_arr, 2.5)),
+        "ci_high": float(np.percentile(diffs_arr, 97.5)),
+    }

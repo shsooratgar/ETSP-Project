@@ -1,19 +1,39 @@
-"""Loading the SummaC benchmark, plus FRANK's error typology.
+"""Loading the SummaC benchmark.
 
-The SummaC loaders download on first use. Two of them are fragile (see README):
-XSumFaith needs ``datasets<3.0`` and SummEval is fetched from Google Drive. Both
-are caught here and reported per dataset rather than failing the whole run.
+We use the loaders shipped in the ``summac`` package (0.0.4). They download each
+dataset on first use. ``summac`` itself pins an old ``transformers`` that cannot
+load Qwen2.5, so it is installed with ``--no-deps`` (see the Makefile); only its
+data loaders are used.
 """
 
 from __future__ import annotations
 
-import json
-import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
-#: FRANK's annotations, used for the per-error-type analysis (RQ2).
-FRANK_URL = "https://raw.githubusercontent.com/artidoro/frank/main/data/human_annotations.json"
+#: FRANK's error typology (Pagnoni et al., 2021), grouping its fine-grained labels.
+FRANK_ERROR_GROUPS: dict[str, str] = {
+    "RelE": "semantic frame",
+    "EntE": "semantic frame",
+    "CircE": "semantic frame",
+    "CorefE": "discourse",
+    "LinkE": "discourse",
+    "OutE": "content verifiability",
+    "GramE": "content verifiability",
+    "OtherE": "other",
+}
+
+#: Readable names for FRANK's fine-grained labels, used in tables and figures.
+FRANK_ERROR_NAMES: dict[str, str] = {
+    "RelE": "predicate",
+    "EntE": "entity",
+    "CircE": "circumstance",
+    "CorefE": "coreference",
+    "LinkE": "discourse link",
+    "OutE": "out of article",
+    "GramE": "grammatical",
+    "OtherE": "other",
+}
 
 
 @dataclass(frozen=True)
@@ -25,8 +45,30 @@ class Example:
     document: str
     summary: str
     label: int  # 1 = consistent, 0 = inconsistent
-    #: FRANK error categories, empty for the other five datasets.
-    error_types: tuple[str, ...] = field(default=())
+    #: Majority error category for inconsistent summaries where the dataset
+    #: provides one (FRANK, SummEval); "NoE" for consistent ones, "" otherwise.
+    error_type: str = ""
+
+
+def _use_parquet_xsum() -> None:
+    """Point SummaC's XSum loader at the Hub's Parquet export.
+
+    The loader calls ``load_dataset("xsum")``, a script-based dataset whose
+    original download URL is no longer reliable. The Parquet conversion of the
+    same test split carries identical ids and documents.
+    """
+    from datasets import load_dataset
+    from summac.benchmark import SummaCBenchmark
+
+    def get_xsum_document(self, aid):  # noqa: ANN001 - matches summac's signature
+        if self.xsum is None:
+            self.xsum = load_dataset(
+                "EdinburghNLP/xsum", revision="refs/convert/parquet", split="test"
+            )
+            self.xsumid2article = {d["id"]: d["document"] for d in self.xsum}
+        return self.xsumid2article[aid]
+
+    SummaCBenchmark.get_xsum_document = get_xsum_document
 
 
 def load_summac(
@@ -39,7 +81,8 @@ def load_summac(
     Args:
         cut: ``"val"`` or ``"test"``.
         data_dir: where the benchmark caches its downloads.
-        datasets: which of the six to load.
+        datasets: which of the six to load, using summac's names
+            (``cogensum``, ``xsumfaith``, ``polytope``, ``factcc``, ``summeval``, ``frank``).
 
     Returns:
         The examples, and a mapping of dataset name to error message for any
@@ -50,9 +93,10 @@ def load_summac(
         from summac.benchmark import SummaCBenchmark
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise ImportError(
-            "The 'summac' package is required: pip install -r requirements.txt"
+            "The 'summac' package is required: run `make install`"
         ) from exc
 
+    _use_parquet_xsum()
     data_dir.mkdir(parents=True, exist_ok=True)
     examples: list[Example] = []
     failures: dict[str, str] = {}
@@ -60,9 +104,9 @@ def load_summac(
     for name in datasets:
         try:
             benchmark = SummaCBenchmark(
-                benchmark_folder=str(data_dir / "summac"),
-                cut=cut,
+                benchmark_folder=str(data_dir / "summac") + "/",
                 dataset_names=[name],
+                cut=cut,
             )
         except Exception as exc:  # noqa: BLE001 - we report, not crash
             failures[name] = f"{type(exc).__name__}: {exc}"
@@ -71,67 +115,12 @@ def load_summac(
             for i, row in enumerate(split["dataset"]):
                 examples.append(
                     Example(
-                        example_id=f"{name}-{cut}-{i}",
-                        dataset=name,
+                        example_id=f"{split['name']}-{cut}-{i}",
+                        dataset=split["name"],
                         document=row["document"],
                         summary=row["claim"],
                         label=int(row["label"]),
+                        error_type=str(row.get("error_type", "")),
                     )
                 )
     return examples, failures
-
-
-def download_frank_annotations(data_dir: Path) -> Path:
-    """Fetch FRANK's human annotations, which carry the error typology."""
-    data_dir.mkdir(parents=True, exist_ok=True)
-    target = data_dir / "frank_human_annotations.json"
-    if not target.exists():
-        urllib.request.urlretrieve(FRANK_URL, target)  # noqa: S310 - fixed https URL
-    return target
-
-
-def frank_error_types(annotations_path: Path) -> dict[str, tuple[str, ...]]:
-    """Map FRANK's ``hash``/``model_name`` key to its annotated error categories.
-
-    FRANK labels each summary sentence with a category from its typology
-    (semantic frame, discourse, content verifiability). We keep the set of
-    categories present anywhere in the summary.
-    """
-    with open(annotations_path, encoding="utf-8") as handle:
-        records = json.load(handle)
-
-    out: dict[str, tuple[str, ...]] = {}
-    for record in records:
-        key = f"{record.get('hash')}-{record.get('model_name')}"
-        categories: set[str] = set()
-        for annotation in record.get("summary_sentences_annotations", []):
-            for votes in annotation.values():
-                categories.update(v for v in votes if v and v != "NoE")
-        out[key] = tuple(sorted(categories))
-    return out
-
-
-def attach_error_types(
-    examples: list[Example], error_types: dict[str, tuple[str, ...]]
-) -> list[Example]:
-    """Return FRANK examples enriched with their error categories.
-
-    Note:
-        The join key depends on fields SummaC's loader keeps for FRANK. Verify
-        the match rate before trusting the RQ2 numbers; ``scripts/download_data.py``
-        reports it.
-    """
-    enriched = []
-    for example in examples:
-        key = example.example_id
-        enriched.append(
-            Example(
-                example_id=example.example_id,
-                dataset=example.dataset,
-                document=example.document,
-                summary=example.summary,
-                label=example.label,
-                error_types=error_types.get(key, ()),
-            )
-        )
-    return enriched

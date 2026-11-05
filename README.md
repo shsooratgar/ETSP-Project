@@ -69,18 +69,29 @@ test new routing policies without re-running a model.
 `scoring`, `features`, `router` and `evaluate` have no torch dependency, so the whole test
 suite runs on a laptop in about a second.
 
-## Data risks
+## Data
 
-All six SummaC datasets download automatically, but two are fragile:
+We use the SummaC loaders from the `summac` package. As of November 2026, three of
+the six SummaC datasets still download:
 
-- **XSumFaith** — the loader calls `load_dataset("xsum", trust_remote_code=True)`, which
-  `datasets>=3.0` removed. Hence the `datasets<3.0` pin in `requirements.txt`. If that pin
-  becomes unworkable, switch to a Parquet mirror such as `EdinburghNLP/xsum`.
-- **SummEval** — fetched from Google Drive, which hits quota errors unpredictably. Keep a
-  manual copy once it downloads successfully.
+| Dataset | Validation | Test | Consistent | Status |
+| --- | ---: | ---: | ---: | --- |
+| XSumFaith | 1,250 | 1,250 | ~10% | works (XSum documents via the Hub's Parquet export) |
+| Polytope | 634 | 634 | ~7% | works |
+| FRANK | 671 | 1,575 | ~33% | works; carries the error typology used for RQ2 |
+| FactCC | | | | source bucket returns 403 |
+| SummEval | | | | Google Drive file returns 404 |
+| CoGenSumm | | | | host now sits behind a bot check; download by hand |
 
-`scripts/download_data.py` reports per-dataset failures instead of crashing. Four of the
-six datasets are enough for the project; drop anything that stays broken.
+`scripts/download_data.py` reports per-dataset failures instead of crashing. To add a
+dataset you downloaded by hand, put it where the summac loader expects it under
+`data/summac/` and add its name to `SUMMAC_DATASETS` in `config.py`.
+
+## Hardware
+
+Everything runs on an Apple Silicon laptop (M5, 32 GB) through PyTorch's MPS backend in
+bf16; the 7B model fits in unified memory. On CUDA machines the same code uses the GPU
+automatically. Runs are resumable: predictions are appended after every batch.
 
 ## Status
 

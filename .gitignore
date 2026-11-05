@@ -12,3 +12,6 @@ data/*
 !data/.gitkeep
 results/*
 !results/.gitkeep
+
+# Local run logs
+logs/

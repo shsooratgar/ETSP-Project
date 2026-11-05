@@ -1,7 +1,9 @@
 .PHONY: install test lint data pilot analyze clean
 
 install:
-	pip install -r requirements.txt && pip install -e .
+	pip install -r requirements.txt
+	pip install --no-deps summac==0.0.4
+	pip install -e .
 
 test:
 	pytest
@@ -13,9 +15,9 @@ data:
 	python scripts/download_data.py --cut val
 	python scripts/download_data.py --cut test
 
-# Smoke test on 20 examples with the smallest model before booking GPU time.
+# Smoke test on 40 examples with the smallest model.
 pilot:
-	python scripts/run_inference.py --model Qwen/Qwen2.5-0.5B-Instruct --cut val --limit 20
+	python scripts/run_inference.py --model Qwen/Qwen2.5-0.5B-Instruct --cut val --limit 40 --tag pilot
 
 analyze:
 	python scripts/analyze.py --cut test

@@ -108,3 +108,30 @@ def test_macro_bootstrap_brackets_the_score_and_tests_differences():
     paired = macro_bootstrap(y_true, strong, groups, pred_b=weak, n_resamples=200)
     assert paired["value"] > 0 and paired["ci_low"] > 0
     assert paired["p_value"] < 0.05
+
+
+def test_cross_fitted_thresholds_never_use_the_example_itself():
+    from frugal_faith.analysis import cross_fitted_thresholds
+
+    rng = np.random.default_rng(0)
+    y_true = rng.integers(0, 2, 200)
+    probs = np.clip(0.6 + 0.2 * y_true + rng.normal(0, 0.1, 200), 0, 1)
+    thresholds = cross_fitted_thresholds(probs, y_true, n_folds=5, seed=0)
+    assert thresholds.shape == (200,)
+    assert len(np.unique(thresholds)) <= 5  # one threshold per fold
+    # Each fold's threshold is tuned without that fold, so it may differ from
+    # the in-sample one, but it still separates the classes well.
+    accuracy = np.mean((probs >= thresholds).astype(int) == y_true)
+    assert accuracy > 0.8
+
+
+def test_paired_auc_bootstrap_detects_a_better_scorer():
+    from frugal_faith.analysis import paired_auc_bootstrap
+
+    rng = np.random.default_rng(0)
+    y_true = rng.integers(0, 2, 300)
+    sharp = y_true + rng.normal(0, 0.5, 300)
+    blurry = y_true + rng.normal(0, 2.0, 300)
+    result = paired_auc_bootstrap(y_true, sharp, blurry, n_resamples=200)
+    assert result["difference"] > 0
+    assert result["ci_low"] > 0

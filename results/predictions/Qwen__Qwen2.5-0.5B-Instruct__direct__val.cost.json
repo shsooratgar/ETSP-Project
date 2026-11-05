@@ -1,0 +1,9 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "device": "mps",
+  "n_examples": 2555,
+  "seconds_per_example": 0.08121711022861633,
+  "peak_memory_gb": 2.218491904,
+  "tokens_per_example": 637.4234833659491,
+  "flops_per_example": 629816175750.9636
+}

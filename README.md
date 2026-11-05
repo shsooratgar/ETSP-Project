@@ -29,7 +29,7 @@ make install
 make test
 ```
 
-Then fetch the data (do this first — see *Data risks* below):
+Then fetch the data (see *Data* below):
 
 ```bash
 make data
@@ -38,13 +38,11 @@ make data
 ## Reproducing a run
 
 ```bash
-# 1. Cache predictions, one model at a time (GPU).
-python scripts/run_inference.py --model Qwen/Qwen2.5-0.5B-Instruct --cut val
-python scripts/run_inference.py --model Qwen/Qwen2.5-7B-Instruct  --cut val --load-in-8bit
-# ... repeat for test, and for the two middle sizes
+# 1. Every model on both cuts, plus prompt variants (~3.5 h on an M5 laptop; resumable).
+make experiments
 
-# 2. Build the curves from the cache (no GPU).
-python scripts/analyze.py --cut test
+# 2. Every table, figure and number in the report, from the cache (no GPU, ~20 s).
+make analyze
 ```
 
 Inference and analysis are separate on purpose: predictions are cached to
@@ -93,13 +91,45 @@ Everything runs on an Apple Silicon laptop (M5, 32 GB) through PyTorch's MPS bac
 bf16; the 7B model fits in unified memory. On CUDA machines the same code uses the GPU
 automatically. Runs are resumable: predictions are appended after every batch.
 
-## Status
+## Results
 
-Scaffold. Implemented and tested: scoring, features, routing policies, metrics,
-bootstrap confidence intervals and paired significance tests, cost-accuracy curves.
-Stubbed: `scripts/analyze.py` needs the prediction-alignment step once the first real
-predictions exist. `data.attach_error_types` has an unverified join key — the download
-script reports the match rate, and RQ2 depends on it.
+Test cut, three SummaC datasets, thresholds tuned on the validation cut. Balanced
+accuracy (BA) is averaged over datasets, with a stratified bootstrap 95% CI. Cost is
+measured on an Apple M5 laptop (MPS, bf16).
+
+| Model | s / 1,000 checks | Macro BA [95% CI] | BA at default 0.5 cut-off | AUC |
+| --- | ---: | --- | ---: | ---: |
+| Qwen2.5-0.5B | 80 | 0.594 [0.561, 0.623] | 0.512 | 0.634 |
+| Qwen2.5-1.5B | 205 | 0.663 [0.634, 0.692] | 0.599 | 0.717 |
+| Qwen2.5-3B | 399 | 0.680 [0.653, 0.711] | 0.578 | 0.755 |
+| Qwen2.5-7B | 1,097 | 0.674 [0.646, 0.704] | 0.637 | 0.747 |
+
+- **Accuracy stops improving after 1.5B–3B.** 7B vs 3B: −0.5 points (paired
+  p = 0.61) at 2.75× the compute; 7B vs 1.5B: +1.1 (p = 0.25) at 5.4×.
+- **Different sizes make different mistakes.** The 7B fixes 27.8% of the 0.5B's test
+  answers and breaks 10.7%. On FRANK it gains on entity, predicate and circumstance
+  errors (+16–17 points) and loses on coreference errors (0.51 → 0.35).
+- **Routing:** an oracle escalating the right 25% of inputs from 0.5B to 7B reaches 0.81.
+  A plain confidence cascade gets within one point of the 7B at 60% escalation (33%
+  compute saved); the learned router does not beat it.
+- **Prompt wording matters as much as size.** On a fixed 400-example subsample, two
+  alternative wordings beat the main prompt at every size (AUC +0.05 to +0.15, all 95%
+  CIs above zero), and the gain shrinks as models grow. Under the better wordings the
+  size curve is flatter still: the 7B is again no better than the 3B. The main prompt
+  was fixed in the proposal; choosing a wording on test data would contaminate it.
+- **Threshold tuning** is worth +8.2 points for the 0.5B model, as much as moving to 7B.
+- **Polytope labels:** 22% of its "inconsistent" test summaries carry only omission or
+  duplication errors, no factual error.
+
+Every table, figure and number comes from `make analyze`, which reads the cached
+predictions in `results/predictions/`. Those files are released so new routing rules
+can be tested without running a model.
+
+| Output | What it holds |
+| --- | --- |
+| `results/summary.json` | Thresholds, paired tests, outcome breakdowns, cascade summaries, router weights |
+| `results/tables/` | One CSV per research question, plus prompt sensitivity |
+| `results/figures/` | Size vs. accuracy, cascade curves, FRANK error types |
 
 ## Team
 

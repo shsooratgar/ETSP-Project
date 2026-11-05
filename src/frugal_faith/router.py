@@ -82,6 +82,35 @@ class LearnedRouter(RoutingPolicy):
             raise RuntimeError("Call fit() before scores()")
         return self._model.predict_proba(features)[:, 1]
 
+    def coefficients(self) -> dict[str, float]:
+        """Logistic-regression weights on standardised features, by name.
+
+        Positive means the feature makes escalation more worthwhile. Comparable
+        across features because every feature is standardised first.
+        """
+        if self._model is None:
+            raise RuntimeError("Call fit() before coefficients()")
+        weights = self._model[-1].coef_[0]
+        return {name: float(w) for name, w in zip(FEATURE_NAMES, weights)}
+
+
+class OracleRouter(RoutingPolicy):
+    """Upper bound: escalates exactly where the large model fixes the answer.
+
+    Reads the gold labels, so it is not deployable; it shows how much a perfect
+    router could save, which puts the real policies' curves in proportion.
+    """
+
+    name = "oracle"
+
+    def __init__(self, improves: np.ndarray) -> None:
+        self._improves = np.asarray(improves, dtype=np.float64)
+
+    def scores(self, features: np.ndarray) -> np.ndarray:
+        if len(features) != len(self._improves):
+            raise ValueError("oracle targets do not match the examples")
+        return self._improves
+
 
 def escalation_mask(scores: np.ndarray, budget: float) -> np.ndarray:
     """Boolean mask escalating the highest-scoring ``budget`` share of examples.

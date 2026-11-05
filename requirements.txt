@@ -1,14 +1,13 @@
-# Pins that matter are commented. Everything else floats.
+# summac is installed separately with --no-deps (see Makefile): it pins
+# transformers==4.35, which predates Qwen2.5. Only its data loaders are used.
 
-# SummaC's XSumFaith loader calls load_dataset(..., trust_remote_code=True),
-# which datasets>=3.0 removed. Do not relax this pin without re-testing XSumFaith.
+# SummaC's loaders use the datasets 2.x API.
 datasets<3.0
-summac>=0.0.4
+openpyxl            # Polytope ships as .xlsm spreadsheets
 
 torch
-transformers>=4.40
+transformers>=4.56  # `dtype=` keyword
 accelerate
-bitsandbytes ; sys_platform == "linux"   # only needed for --load-in-8bit
 
 numpy
 pandas

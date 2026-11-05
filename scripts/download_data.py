@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Week-one job: fetch and cache every dataset, and report what failed.
 
-Run this before any modelling. It is the step the proposal flags as a risk:
-XSumFaith needs ``datasets<3.0`` and SummEval comes from Google Drive.
+Run this before any modelling. Source documents come from CNN/DailyMail and
+XSum on the Hugging Face Hub; the annotations from each dataset's own release.
 
 Usage:
     python scripts/download_data.py --cut val
@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 
 from frugal_faith.config import Config
-from frugal_faith.data import download_frank_annotations, frank_error_types, load_summac
+from frugal_faith.data import load_summac
 
 
 def main() -> int:
@@ -26,29 +27,21 @@ def main() -> int:
     examples, failures = load_summac(args.cut, config.data_dir, config.datasets)
 
     print(f"Loaded {len(examples)} examples from the '{args.cut}' cut.")
-    by_dataset: dict[str, int] = {}
-    for example in examples:
-        by_dataset[example.dataset] = by_dataset.get(example.dataset, 0) + 1
-    for name in config.datasets:
-        status = by_dataset.get(name)
-        print(f"  {name:<12} {status if status is not None else 'FAILED':>8}")
+    counts = Counter(e.dataset for e in examples)
+    consistent = Counter(e.dataset for e in examples if e.label == 1)
+    for name, n in sorted(counts.items()):
+        print(f"  {name:<12} {n:>6}  ({consistent[name] / n:.0%} consistent)")
 
     if failures:
         print("\nFailures (drop these datasets if they stay broken):")
         for name, message in failures.items():
             print(f"  {name}: {message}")
 
-    try:
-        path = download_frank_annotations(config.data_dir)
-        types = frank_error_types(path)
-        print(f"\nFRANK error typology: {len(types)} annotated summaries.")
-        frank = [e for e in examples if e.dataset == "frank"]
-        matched = sum(1 for e in frank if e.example_id in types)
-        print(f"Join check: {matched}/{len(frank)} FRANK examples matched a typology entry.")
-        if frank and matched == 0:
-            print("  -> Join key is wrong. Fix data.attach_error_types before RQ2.")
-    except Exception as exc:  # noqa: BLE001 - diagnostic script
-        print(f"\nFRANK annotations unavailable: {exc}")
+    frank_errors = Counter(
+        e.error_type for e in examples if e.dataset == "frank" and e.label == 0
+    )
+    if frank_errors:
+        print(f"\nFRANK error types among inconsistent summaries: {dict(frank_errors)}")
 
     return 0 if examples else 1
 

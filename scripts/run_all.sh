@@ -17,7 +17,7 @@ done
 # Prompt sensitivity: two alternative wordings on a fixed random subsample of the
 # test cut. The "direct" wording's scores on the same examples come from the
 # full runs above.
-for size in 0.5B 1.5B 3B; do
+for size in 0.5B 1.5B 3B 7B; do
   for prompt in entailment fact_check; do
     echo "=== Qwen2.5-${size} / prompt ${prompt} ==="
     "$PY" scripts/run_inference.py --model "Qwen/Qwen2.5-${size}-Instruct" \

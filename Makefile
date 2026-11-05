@@ -24,7 +24,7 @@ experiments:
 	PYTHON=python scripts/run_all.sh
 
 analyze:
-	python scripts/analyze.py --cut test
+	python scripts/analyze.py
 
 clean:
 	rm -rf .pytest_cache **/__pycache__

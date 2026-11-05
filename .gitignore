@@ -6,12 +6,12 @@ __pycache__/
 .ruff_cache/
 .DS_Store
 
-# Raw corpora are large and re-downloadable; cached predictions are not committed
-# by default either. Release them with the report instead.
+# Raw corpora are large and re-downloadable.
 data/*
 !data/.gitkeep
-results/*
-!results/.gitkeep
+# Results are released: cached predictions (so routing rules can be tested
+# without re-running a model), tables, figures and the summary. Pilot runs stay local.
+results/predictions/*pilot*
 
 # Local run logs
 logs/

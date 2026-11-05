@@ -1,0 +1,37 @@
+category,n,detected,size,name,group
+CircE,110,0.5818181818181818,0.5B,circumstance,semantic frame
+CorefE,81,0.5061728395061729,0.5B,coreference,discourse
+EntE,282,0.6028368794326241,0.5B,entity,semantic frame
+GramE,98,0.6428571428571429,0.5B,grammatical,content verifiability
+LinkE,21,0.38095238095238093,0.5B,discourse link,discourse
+OtherE,16,0.5625,0.5B,other,other
+OutE,333,0.7657657657657657,0.5B,out of article,content verifiability
+RelE,105,0.6857142857142857,0.5B,predicate,semantic frame
+NoE,529,0.6824196597353497,0.5B,consistent (kept),-
+CircE,110,0.6636363636363637,1.5B,circumstance,semantic frame
+CorefE,81,0.4567901234567901,1.5B,coreference,discourse
+EntE,282,0.6737588652482269,1.5B,entity,semantic frame
+GramE,98,0.6530612244897959,1.5B,grammatical,content verifiability
+LinkE,21,0.5238095238095238,1.5B,discourse link,discourse
+OtherE,16,0.375,1.5B,other,other
+OutE,333,0.8708708708708709,1.5B,out of article,content verifiability
+RelE,105,0.780952380952381,1.5B,predicate,semantic frame
+NoE,529,0.7618147448015122,1.5B,consistent (kept),-
+CircE,110,0.8181818181818182,3B,circumstance,semantic frame
+CorefE,81,0.4567901234567901,3B,coreference,discourse
+EntE,282,0.7978723404255319,3B,entity,semantic frame
+GramE,98,0.7959183673469388,3B,grammatical,content verifiability
+LinkE,21,0.6190476190476191,3B,discourse link,discourse
+OtherE,16,0.5,3B,other,other
+OutE,333,0.9519519519519519,3B,out of article,content verifiability
+RelE,105,0.8571428571428571,3B,predicate,semantic frame
+NoE,529,0.8071833648393195,3B,consistent (kept),-
+CircE,110,0.7545454545454545,7B,circumstance,semantic frame
+CorefE,81,0.345679012345679,7B,coreference,discourse
+EntE,282,0.7730496453900709,7B,entity,semantic frame
+GramE,98,0.7346938775510204,7B,grammatical,content verifiability
+LinkE,21,0.5714285714285714,7B,discourse link,discourse
+OtherE,16,0.375,7B,other,other
+OutE,333,0.8798798798798799,7B,out of article,content verifiability
+RelE,105,0.8476190476190476,7B,predicate,semantic frame
+NoE,529,0.8431001890359168,7B,consistent (kept),-

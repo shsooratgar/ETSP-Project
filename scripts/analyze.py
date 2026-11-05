@@ -19,10 +19,12 @@ import pandas as pd
 
 from frugal_faith.analysis import (
     calibrate,
+    cross_fitted_thresholds,
     detection_by_category,
     macro_balanced_accuracy,
     macro_bootstrap,
     outcome_breakdown,
+    paired_auc_bootstrap,
     roc_auc,
     tune_threshold,
     within_group_terciles,
@@ -87,6 +89,14 @@ class Run:
             g: tune_threshold(p_val[g_val == g], y_val[g_val == g]) for g in np.unique(g_val)
         }
         self.val = [calibrate(p, self.thresholds[e.dataset]) for p, e in zip(raw_val, val_ex)]
+        # For training the router: validation labels from thresholds tuned on
+        # other folds, so they behave like test-time predictions.
+        cross = np.empty(len(val_ex))
+        for g in np.unique(g_val):
+            mask = g_val == g
+            cross[mask] = cross_fitted_thresholds(p_val[mask], y_val[mask], seed=0)
+        self.val_cross = [calibrate(p, t) for p, t in zip(raw_val, cross)]
+        self.val_cross_labels = np.array([p.label for p in self.val_cross])
         self.test = [calibrate(p, self.thresholds[e.dataset]) for p, e in zip(raw_test, test_ex)]
         self.val_labels = np.array([p.label for p in self.val])
         self.test_labels = np.array([p.label for p in self.test])
@@ -207,9 +217,9 @@ def rq3(
     def metric(yt: np.ndarray, yp: np.ndarray) -> float:
         return macro_balanced_accuracy(yt, yp, groups)
 
-    x_val = to_matrix([extract_features(e, p) for e, p in zip(val_ex, small.val)])
+    x_val = to_matrix([extract_features(e, p) for e, p in zip(val_ex, small.val_cross)])
     x_test = to_matrix([extract_features(e, p) for e, p in zip(test_ex, small.test)])
-    improves_val = (small.val_labels != y_val) & (large.val_labels == y_val)
+    improves_val = (small.val_cross_labels != y_val) & (large.val_cross_labels == y_val)
     improves_test = (small.test_labels != y_test) & (large.test_labels == y_test)
 
     learned = LearnedRouter(seed=seed).fit(x_val, improves_val.astype(int))
@@ -279,8 +289,26 @@ def prompt_sensitivity(config: Config, runs: list[Run], test_ex: list[Example]) 
             else:
                 continue
             labels = np.array([by_id[i].label for i in ids])
-            rows.append({"size": size_of(model), "prompt": prompt, "auc": roc_auc(labels, probs)})
-    return pd.DataFrame(rows)
+            rows.append(
+                {"size": size_of(model), "prompt": prompt, "auc": roc_auc(labels, probs),
+                 "ids": list(ids), "probs": probs, "labels": labels}
+            )
+    # Compare each wording with the main one on the same examples.
+    frame = pd.DataFrame(rows)
+    for i, row in frame.iterrows():
+        ref = frame[(frame["size"] == row["size"]) & (frame["prompt"] == "direct")]
+        if row["prompt"] == "direct" or ref.empty:
+            continue
+        ref = ref.iloc[0]
+        # Files list examples in batch order, which depends on prompt length,
+        # so align this wording's scores to the reference order by id.
+        score_of = dict(zip(row["ids"], row["probs"]))
+        aligned = np.array([score_of[k] for k in ref["ids"]])
+        test = paired_auc_bootstrap(ref["labels"], aligned, ref["probs"], n_resamples=N_BOOT)
+        frame.loc[i, ["vs_direct", "vs_direct_low", "vs_direct_high"]] = (
+            test["difference"], test["ci_low"], test["ci_high"]
+        )
+    return frame.drop(columns=["ids", "probs", "labels"])
 
 
 def plot(results_dir: Path, rq1_table, curves, refs, errors_df) -> None:
@@ -367,8 +395,11 @@ def main() -> int:
 
     all_curves, all_refs = [], []
     summary["rq3"] = {}
-    for small in runs[:-1]:
-        curves, refs, rq3_summary = rq3(small, runs[-1], val_ex, test_ex, config.budgets, config.seed)
+    # Every cascade from a smaller into a larger model, so the practical choice
+    # (route into the model where accuracy stops improving) is covered too.
+    pairs = [(a, b) for i, a in enumerate(runs) for b in runs[i + 1 :]]
+    for small, large in pairs:
+        curves, refs, rq3_summary = rq3(small, large, val_ex, test_ex, config.budgets, config.seed)
         refs["cascade"] = curves["cascade"].iloc[0]
         all_curves.append(curves)
         all_refs.append(refs)
@@ -382,11 +413,13 @@ def main() -> int:
 
     with open(config.results_dir / "summary.json", "w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
-    plot(config.results_dir, rq1_table, curves_df, all_refs[0], errors_df)
+    main_cascade = f"{runs[0].size}->{runs[-1].size}"
+    main_refs = next(r for r in all_refs if r["cascade"].iloc[0] == main_cascade)
+    plot(config.results_dir, rq1_table, curves_df[curves_df["cascade"] == main_cascade], main_refs, errors_df)
 
     pd.set_option("display.width", 160)
     print("\nRQ1\n", rq1_table[["size", "macro_ba", "macro_low", "macro_high", "macro_ba_default_threshold", "macro_auc", "seconds_per_1k"]].round(3).to_string(index=False))
-    print("\nRQ3 (first cascade)\n", json.dumps(summary["rq3"][curves_df["cascade"].iloc[0]], indent=1)[:1500])
+    print(f"\nRQ3 ({main_cascade})\n", json.dumps(summary["rq3"][main_cascade], indent=1)[:1500])
     if len(prompts):
         print("\nPrompt sensitivity\n", prompts.pivot(index="size", columns="prompt", values="auc").round(3))
     return 0

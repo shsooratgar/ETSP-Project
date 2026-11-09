@@ -10,6 +10,7 @@ transformers>=4.56  # `dtype=` keyword
 accelerate
 
 numpy
+scipy
 pandas
 scikit-learn
 matplotlib

@@ -25,9 +25,12 @@ random escalation at an equal compute budget.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-make install
+make install          # or `make install-locked` for the exact versions behind the results
 make test
 ```
+
+`requirements-lock.txt` pins all 85 packages of the environment that produced the
+released results (Python 3.13, macOS arm64).
 
 Then fetch the data (see *Data* below):
 
@@ -131,6 +134,18 @@ can be tested without running a model.
 | `results/tables/` | One CSV per research question, plus prompt sensitivity |
 | `results/figures/` | Size vs. accuracy, cascade curves, FRANK error types |
 
-## Team
+## Project board
 
-Shayan Sooratgar, Batuhan Iliev
+Work is tracked on the [project board](https://github.com/users/shsooratgar/projects/1):
+the merged stages, the open follow-ups from the report's future-work section, and
+the submission.
+
+## Built with
+
+[PyTorch](https://pytorch.org), [Hugging Face Transformers](https://github.com/huggingface/transformers)
+and [Datasets](https://github.com/huggingface/datasets), [scikit-learn](https://scikit-learn.org),
+[SciPy](https://scipy.org) and the data loaders of [SummaC](https://github.com/tingofurro/summac).
+
+## Team and license
+
+Shayan Sooratgar, Batuhan Iliev. Released under the [MIT License](LICENSE).

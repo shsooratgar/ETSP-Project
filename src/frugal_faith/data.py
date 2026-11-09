@@ -60,7 +60,7 @@ def _use_parquet_xsum() -> None:
     from datasets import load_dataset
     from summac.benchmark import SummaCBenchmark
 
-    def get_xsum_document(self, aid):  # noqa: ANN001 - matches summac's signature
+    def get_xsum_document(self: SummaCBenchmark, aid: str) -> str:
         if self.xsum is None:
             self.xsum = load_dataset(
                 "EdinburghNLP/xsum", revision="refs/convert/parquet", split="test"

@@ -24,10 +24,10 @@ class Prediction:
 
 
 def softmax(logits: np.ndarray) -> np.ndarray:
-    """Numerically stable softmax over the last axis."""
-    shifted = logits - np.max(logits, axis=-1, keepdims=True)
-    exp = np.exp(shifted)
-    return exp / np.sum(exp, axis=-1, keepdims=True)
+    """Softmax over the last axis (SciPy's numerically stable implementation)."""
+    from scipy.special import softmax as scipy_softmax
+
+    return scipy_softmax(logits, axis=-1)
 
 
 def label_probabilities(

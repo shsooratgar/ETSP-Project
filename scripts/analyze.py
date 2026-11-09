@@ -75,7 +75,15 @@ def load_predictions(path: Path) -> dict[str, Prediction]:
 class Run:
     """One model's calibrated predictions on both cuts, aligned to the examples."""
 
-    def __init__(self, model, val_ex, test_ex, val_pred, test_pred, cost):
+    def __init__(
+        self,
+        model: str,
+        val_ex: list[Example],
+        test_ex: list[Example],
+        val_pred: dict[str, Prediction],
+        test_pred: dict[str, Prediction],
+        cost: dict[str, float],
+    ) -> None:
         self.model = model
         self.size = size_of(model)
         self.cost = cost
@@ -168,7 +176,9 @@ def rq1(runs: list[Run], y: np.ndarray, groups: np.ndarray) -> tuple[pd.DataFram
     return table, comparisons
 
 
-def rq2(runs: list[Run], test_ex: list[Example], y: np.ndarray, groups: np.ndarray):
+def rq2(
+    runs: list[Run], test_ex: list[Example], y: np.ndarray, groups: np.ndarray
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Where the gap lives: FRANK error types and relative document length."""
     frank = groups == "frank"
     categories = np.array([e.error_type for e in test_ex])
@@ -208,7 +218,7 @@ def rq3(
     test_ex: list[Example],
     budgets: tuple[float, ...],
     seed: int,
-):
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Cascade from ``small`` to ``large``: curves for every routing policy."""
     y_val = np.array([e.label for e in val_ex])
     y_test = np.array([e.label for e in test_ex])
@@ -311,7 +321,13 @@ def prompt_sensitivity(config: Config, runs: list[Run], test_ex: list[Example]) 
     return frame.drop(columns=["ids", "probs", "labels"])
 
 
-def plot(results_dir: Path, rq1_table, curves, refs, errors_df) -> None:
+def plot(
+    results_dir: Path,
+    rq1_table: pd.DataFrame,
+    curves: pd.DataFrame,
+    refs: pd.DataFrame,
+    errors_df: pd.DataFrame,
+) -> None:
     import matplotlib
 
     matplotlib.use("Agg")

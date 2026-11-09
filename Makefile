@@ -1,7 +1,13 @@
-.PHONY: install test lint data pilot experiments analyze clean
+.PHONY: install install-locked test lint data pilot experiments analyze clean
 
 install:
 	pip install -r requirements.txt
+	pip install --no-deps summac==0.0.4
+	pip install -e .
+
+# The exact versions that produced the released results.
+install-locked:
+	pip install -r requirements-lock.txt
 	pip install --no-deps summac==0.0.4
 	pip install -e .
 

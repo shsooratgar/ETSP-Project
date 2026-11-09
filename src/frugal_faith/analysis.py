@@ -121,18 +121,17 @@ def within_group_terciles(values: np.ndarray, groups: np.ndarray) -> np.ndarray:
 
 
 def roc_auc(y_true: np.ndarray, scores: np.ndarray) -> float:
-    """Area under the ROC curve, threshold-free (Mann-Whitney formulation).
+    """Area under the ROC curve, threshold-free.
 
     Used for prompt sensitivity, where no validation run exists to tune a
-    threshold for every wording. Ties count half.
+    threshold for every wording.
     """
-    y_true, scores = np.asarray(y_true), np.asarray(scores, dtype=np.float64)
-    pos, neg = scores[y_true == 1], scores[y_true == 0]
-    if len(pos) == 0 or len(neg) == 0:
+    from sklearn.metrics import roc_auc_score
+
+    y_true = np.asarray(y_true)
+    if len(np.unique(y_true)) < 2:
         raise ValueError("roc_auc needs both classes")
-    greater = (pos[:, None] > neg[None, :]).sum()
-    ties = (pos[:, None] == neg[None, :]).sum()
-    return float((greater + 0.5 * ties) / (len(pos) * len(neg)))
+    return float(roc_auc_score(y_true, np.asarray(scores, dtype=np.float64)))
 
 
 def _stratified_indices(groups: np.ndarray, rng: np.random.Generator) -> np.ndarray:

@@ -16,18 +16,15 @@ def balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """Mean of per-class recall, the metric SummaC reports.
 
     Plain accuracy flatters a classifier on these datasets because most summaries
-    are labelled consistent.
+    are labelled inconsistent. Thin wrapper over scikit-learn so the rest of the
+    code has one name for it.
     """
+    from sklearn.metrics import balanced_accuracy_score
+
     y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    recalls = []
-    for label in (0, 1):
-        in_class = y_true == label
-        if in_class.any():
-            recalls.append(float(np.mean(y_pred[in_class] == label)))
-    if not recalls:
+    if len(y_true) == 0:
         raise ValueError("y_true contains neither class")
-    return float(np.mean(recalls))
+    return float(balanced_accuracy_score(y_true, np.asarray(y_pred)))
 
 
 def bootstrap_ci(
